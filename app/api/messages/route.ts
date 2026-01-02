@@ -9,7 +9,15 @@ export async function GET() {
     .find()
     .sort({ createdAt: -1 })
     .toArray();
-  return NextResponse.json(msgs);
+
+  // Convert ObjectId/Date to strings for safe JSON consumption on the client
+  const transformed = msgs.map((m) => ({
+    ...m,
+    _id: m._id?.toString?.(),
+    createdAt: m.createdAt?.toISOString?.() ?? m.createdAt,
+  }));
+
+  return NextResponse.json(transformed);
 }
 
 export async function POST(req: Request) {
