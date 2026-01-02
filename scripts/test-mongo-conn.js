@@ -34,11 +34,9 @@ if (!uri) {
       host = new URL(host).host;
     } catch (e) {}
 
-    console.log('SUCCESS: Connected to MongoDB host:', host);
-
+    
     const db = client.db('ducktype');
     const collections = await db.listCollections().toArray();
-    console.log('ducktype collection count:', collections.length);
     process.exit(0);
   } catch (err) {
     console.error('FAILED:', err.message || err);

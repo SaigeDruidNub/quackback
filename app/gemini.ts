@@ -1,13 +1,20 @@
 // gemini.ts
 // Handles communication with the Gemini AI API
 
-export async function askGemini(prompt: string): Promise<string[]> {
+export interface GeminiMessage {
+  role: "user" | "model";
+  parts: { text: string }[];
+}
+
+export async function askGemini(
+  conversation: GeminiMessage[]
+): Promise<string[]> {
   const res = await fetch("/api/gemini", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ conversation }),
   });
 
   if (!res.ok) {

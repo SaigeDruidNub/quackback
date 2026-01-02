@@ -26,15 +26,9 @@ if (!uri) {
     const db = client.db('ducktype');
     const payload = { user: 'Integration Test', ai: ['This is a test insertion via API (simulated)'], createdAt: new Date() };
     const result = await db.collection('messages').insertOne(payload);
-    console.log('Inserted document id:', result.insertedId.toString());
-
+    
     const fetched = await db.collection('messages').findOne({ _id: result.insertedId });
-    console.log('Fetched document:', {
-      _id: fetched._id.toString(),
-      user: fetched.user,
-      ai: fetched.ai,
-      createdAt: fetched.createdAt,
-    });
+   
 
     process.exit(0);
   } catch (err) {

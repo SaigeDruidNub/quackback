@@ -18,14 +18,21 @@ function parseJsonObjectFromText(text: string) {
 
 export async function POST(req: Request) {
   try {
-    const { prompt } = await req.json();
+    const { conversation } = await req.json();
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ error: "Missing GEMINI_API_KEY" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Missing GEMINI_API_KEY" },
+        { status: 500 }
+      );
     }
-    if (!prompt || typeof prompt !== "string") {
-      return NextResponse.json({ error: "Missing prompt" }, { status: 400 });
+
+    if (!Array.isArray(conversation) || conversation.length === 0) {
+      return NextResponse.json(
+        { error: "Missing conversation" },
+        { status: 400 }
+      );
     }
 
     const body = {
@@ -41,27 +48,24 @@ export async function POST(req: Request) {
           },
         ],
       },
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      contents: conversation,
       generationConfig: {
-  max_output_tokens: 256,
-  temperature: 0.2,
-
-  // Force JSON
-  response_mime_type: "application/json",
-  response_json_schema: {
-    type: "object",
-    properties: {
-      questions: {
-        type: "array",
-        items: { type: "string" },
-        minItems: 1,
-        maxItems: 2,
+        max_output_tokens: 256,
+        temperature: 0.2,
+        response_mime_type: "application/json",
+        response_json_schema: {
+          type: "object",
+          properties: {
+            questions: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 1,
+              maxItems: 2,
+            },
+          },
+          required: ["questions"],
+        },
       },
-    },
-    required: ["questions"],
-  },
-},
-
     };
 
     const res = await fetch(`${endpoint}?key=${apiKey}`, {
@@ -80,31 +84,31 @@ export async function POST(req: Request) {
 
     const data = await res.json();
 
-    console.log("=== GEMINI FULL RESPONSE ===");
-    console.dir(data, { depth: null });
-    console.log("=== END GEMINI FULL RESPONSE ===");
-
-
     const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-    console.log("=== GEMINI TEXT PART ===");
-    console.log(JSON.stringify(text, null, 2));
-    console.log("=== END GEMINI TEXT PART ===");
-
-
     // In true JSON mode this should already be JSON text, but we parse defensively
-    const parsed = parseJsonObjectFromText(text) ?? (() => {
-      try { return JSON.parse(text); } catch { return null; }
-    })();
+    const parsed =
+      parseJsonObjectFromText(text) ??
+      (() => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return null;
+        }
+      })();
 
     const questions = Array.isArray(parsed?.questions) ? parsed.questions : [];
     if (questions.length) return NextResponse.json({ questions });
 
-    console.log("Gemini raw (expected JSON) response:", text);
     return NextResponse.json({
-      questions: ["What outcome are you expecting, and what are you observing instead?"],
+      questions: [
+        "What outcome are you expecting, and what are you observing instead?",
+      ],
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Unknown error" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message ?? "Unknown error" },
+      { status: 500 }
+    );
   }
 }
