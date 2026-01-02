@@ -6,4 +6,8 @@ export interface Conversation {
   messages: Message[];
   createdAt?: string;
   updatedAt?: string;
+  ahaMoment?: {
+    text: string;
+    createdAt: string;
+  };
 }

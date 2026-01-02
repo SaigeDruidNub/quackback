@@ -5,6 +5,9 @@ import Image from "next/image";
 import { askGemini, GeminiMessage } from "./gemini";
 
 export default function Home() {
+  const [ahaModal, setAhaModal] = useState(false);
+  const [ahaInput, setAhaInput] = useState("");
+  const [ahaMoment, setAhaMoment] = useState<any>(null);
   // User ID for per-user conversations
   function getUserId() {
     if (typeof window === "undefined") return "";
@@ -52,12 +55,35 @@ export default function Home() {
         if (res.ok) {
           const data = await res.json();
           setMessages(data.messages ?? []);
+          setAhaMoment(data.ahaMoment ?? null);
         }
       } catch (err) {
         console.error("Failed to load conversation messages", err);
       }
     })();
   }, [activeConv]);
+  const handleAhaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ahaInput.trim() || !activeConv) return;
+    try {
+      const res = await fetch(
+        `/api/conversations/${activeConv}?userId=${userId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: ahaInput.trim() }),
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setAhaMoment(data.ahaMoment);
+        setAhaModal(false);
+        setAhaInput("");
+      }
+    } catch (err) {
+      alert("Failed to save Aha Moment");
+    }
+  };
 
   const createConversation = async (title: string) => {
     try {
@@ -401,14 +427,159 @@ export default function Home() {
               marginBottom: 12,
             }}
           >
-            <h2 style={{ margin: 0 }}>
-              {conversations.find((c) => c._id === activeConv)?.title ??
-                "New Chat"}
-            </h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <h2 style={{ margin: 0 }}>
+                {conversations.find((c) => c._id === activeConv)?.title ??
+                  "New Chat"}
+              </h2>
+              <button
+                onClick={() => setAhaModal(true)}
+                style={{
+                  background: "var(--color-primary-yellow)",
+                  color: "#151C2F",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "4px 14px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontSize: 15,
+                }}
+              >
+                🎉 Aha Moment
+              </button>
+            </div>
             <div style={{ color: "var(--color-secondary-text)", fontSize: 13 }}>
               {messages.length} messages
             </div>
           </div>
+          {ahaMoment && (
+            <div
+              style={{
+                background: "#fffbe6",
+                border: "2px solid var(--color-primary-yellow)",
+                borderRadius: 10,
+                padding: 18,
+                marginBottom: 18,
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 16,
+                boxShadow: "0 2px 12px #0001",
+              }}
+            >
+              <Image
+                src="/DTFavIcon.png"
+                alt="DuckType Icon"
+                width={40}
+                height={40}
+                style={{ marginRight: 8, borderRadius: 8 }}
+                priority
+              />
+              <div>
+                <div
+                  style={{ fontWeight: 700, color: "#bfa100", marginBottom: 4 }}
+                >
+                  Duck says: "Quack! That's an Aha Moment!"
+                </div>
+                <div style={{ fontSize: 16, color: "#333" }}>
+                  <strong>What clicked for you?</strong> <br />
+                  <span>{ahaMoment.text}</span>
+                </div>
+                <div style={{ fontSize: 12, color: "#888", marginTop: 6 }}>
+                  {ahaMoment.createdAt &&
+                    new Date(ahaMoment.createdAt).toLocaleString()}
+                </div>
+              </div>
+            </div>
+          )}
+          {ahaModal && (
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100vw",
+                height: "100vh",
+                background: "rgba(0,0,0,0.4)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 2000,
+              }}
+            >
+              <form
+                onSubmit={handleAhaSubmit}
+                style={{
+                  background: "#23283a",
+                  padding: 32,
+                  borderRadius: 16,
+                  boxShadow: "0 8px 32px #0006",
+                  minWidth: 340,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
+                  alignItems: "stretch",
+                }}
+              >
+                <label style={{ color: "#fff", fontWeight: 600, fontSize: 18 }}>
+                  What clicked for you?
+                </label>
+                <textarea
+                  autoFocus
+                  value={ahaInput}
+                  onChange={(e) => setAhaInput(e.target.value)}
+                  placeholder="Describe your Aha Moment..."
+                  style={{
+                    padding: 12,
+                    borderRadius: 8,
+                    border: "none",
+                    fontSize: 16,
+                    marginBottom: 8,
+                    minHeight: 60,
+                    resize: "vertical",
+                  }}
+                  maxLength={300}
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setAhaModal(false)}
+                    style={{
+                      background: "#444a",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "8px 18px",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      background: "var(--color-primary-yellow)",
+                      color: "#151C2F",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "8px 18px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                    disabled={!ahaInput.trim()}
+                  >
+                    Save
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
           <Image
             src="/DuckTypeLogo.png"
             alt="DuckType Logo"

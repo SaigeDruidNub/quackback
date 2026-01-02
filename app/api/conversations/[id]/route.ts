@@ -1,3 +1,43 @@
+// PATCH: Add or update the "Aha Moment" for a conversation
+export async function PATCH(req: Request, { params }: { params: any }) {
+  try {
+    const p = await params;
+    const id = p?.id;
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    if (!userId)
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    const { text } = await req.json();
+    if (!text || typeof text !== "string") {
+      return NextResponse.json(
+        { error: "Missing or invalid text" },
+        { status: 400 }
+      );
+    }
+    const oid = new ObjectId(id);
+    const client = await clientPromise;
+    const db = client.db("ducktype");
+    const now = new Date().toISOString();
+    const result = await db
+      .collection("conversations")
+      .findOneAndUpdate(
+        { _id: oid, userId },
+        {
+          $set: { ahaMoment: { text, createdAt: now }, updatedAt: new Date() },
+        },
+        { returnDocument: "after" }
+      );
+    const conv = (result && "value" in result ? result.value : result) || null;
+    if (!conv) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ahaMoment: conv.ahaMoment });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "server error" }, { status: 500 });
+  }
+}
 import clientPromise from "../../../../lib/mongodb";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";

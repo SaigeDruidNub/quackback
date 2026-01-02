@@ -21,9 +21,7 @@ export async function POST(req: Request) {
     const { conversation } = await req.json();
     const apiKey = process.env.GEMINI_API_KEY;
 
-    console.log("[Gemini API] Incoming conversation:", conversation);
     if (!apiKey) {
-      console.error("[Gemini API] Missing GEMINI_API_KEY");
       return NextResponse.json(
         { error: "Missing GEMINI_API_KEY" },
         { status: 500 }
@@ -31,7 +29,6 @@ export async function POST(req: Request) {
     }
 
     if (!Array.isArray(conversation) || conversation.length === 0) {
-      console.error("[Gemini API] Missing conversation");
       return NextResponse.json(
         { error: "Missing conversation" },
         { status: 400 }
@@ -71,7 +68,6 @@ export async function POST(req: Request) {
       },
     };
 
-    console.log("[Gemini API] Request body:", body);
     const res = await fetch(`${endpoint}?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -80,7 +76,6 @@ export async function POST(req: Request) {
 
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
-      console.error(`[Gemini API] Gemini API error: ${res.status}`, errText);
       return NextResponse.json(
         { error: `Gemini API error: ${res.status}`, details: errText },
         { status: res.status }
@@ -88,10 +83,8 @@ export async function POST(req: Request) {
     }
 
     const data = await res.json();
-    console.log("[Gemini API] Gemini API response:", data);
 
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    console.log("[Gemini API] Extracted text:", text);
 
     // In true JSON mode this should already be JSON text, but we parse defensively
     const parsed =
@@ -104,18 +97,15 @@ export async function POST(req: Request) {
         }
       })();
 
-    console.log("[Gemini API] Parsed questions:", parsed?.questions);
     const questions = Array.isArray(parsed?.questions) ? parsed.questions : [];
     if (questions.length) return NextResponse.json({ questions });
 
-    console.warn("[Gemini API] No valid questions returned, using fallback.");
     return NextResponse.json({
       questions: [
         "What outcome are you expecting, and what are you observing instead?",
       ],
     });
   } catch (e: any) {
-    console.error("[Gemini API] Exception:", e);
     return NextResponse.json(
       { error: e?.message ?? "Unknown error" },
       { status: 500 }
