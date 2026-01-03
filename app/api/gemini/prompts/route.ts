@@ -9,7 +9,11 @@ const endpoint =
 
 function noStoreJson(data: any, init?: number | { status?: number }) {
   const status =
-    typeof init === "number" ? init : typeof init === "object" ? init.status : 200;
+    typeof init === "number"
+      ? init
+      : typeof init === "object"
+      ? init.status
+      : 200;
 
   const res = NextResponse.json(data, { status });
 
@@ -101,9 +105,13 @@ export async function POST(req: Request) {
       "(3–10 words each) that a user could ask to start a helpful conversation. " +
       "Return ONLY valid JSON that matches the schema. No preamble, no markdown, no code fences.";
 
+    // Prepend the system prompt as the first user message
     const body = {
-      systemInstruction: { parts: [{ text: systemText }] },
       contents: [
+        {
+          role: "user",
+          parts: [{ text: systemText }],
+        },
         {
           role: "user",
           parts: [{ text: `Provide starter prompts. nonce=${nonce}` }],
@@ -141,7 +149,11 @@ export async function POST(req: Request) {
     let text = "";
     if (!geminiRes.ok) {
       const errText = await geminiRes.text().catch(() => "");
-      console.error("Gemini API returned non-OK status", geminiRes.status, errText);
+      console.error(
+        "Gemini API returned non-OK status",
+        geminiRes.status,
+        errText
+      );
       // allow fallback below
     } else {
       const data: any = await geminiRes.json();
