@@ -629,7 +629,8 @@ export default function Home() {
                 value={input}
                 onFocus={async () => {
                   // Only show starter prompts if this conversation has no messages yet
-                  if (messages.length === 0) {
+                  // Show suggestions only if there are no messages in this conversation
+                  if (!messages || messages.length === 0) {
                     setPromptsVisible(true);
                     if (starterPrompts.length === 0 && !loadingPrompts) {
                       setLoadingPrompts(true);
@@ -644,8 +645,18 @@ export default function Home() {
                               ? cc.messages[cc.messages.length - 1].user
                               : "") || "",
                         }));
-                      const p = await (await import("./gemini")).getStarterPrompts({ recentConversations: recent });
-                      setStarterPrompts(p);
+
+                      const mod = await import("./gemini");
+                      const p = await mod.getStarterPrompts({ recentConversations: recent });
+
+                      // client-side fallback if Gemini returned nothing
+                      const fallback = [
+                        "What's the main challenge I'm facing?",
+                        "How can I improve this idea?",
+                        "What am I missing in my approach?",
+                      ];
+
+                      setStarterPrompts((p && p.length ? p : fallback));
                       setLoadingPrompts(false);
                     }
                   } else {
